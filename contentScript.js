@@ -1,0 +1,1 @@
+console.log("[AI Doom Assassin] content script loaded on X");

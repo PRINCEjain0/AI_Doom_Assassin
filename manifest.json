@@ -1,0 +1,20 @@
+{
+    "manifest_version": 3,
+    "name": "AI Doom Assassin",
+    "description": "Experiment: detect and label AI fear-mongering posts on X.",
+    "version": "0.0.1",
+    "permissions": [],
+    "host_permissions": [
+      "https://x.com/*"
+    ],
+    "content_scripts": [
+      {
+        "matches": ["https://x.com/*"],
+        "js": ["contentScript.js"],
+        "run_at": "document_idle"
+      }
+    ],
+    "action": {
+      "default_title": "AI Doom Assassin"
+    }
+  }
