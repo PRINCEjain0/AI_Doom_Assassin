@@ -1,7 +1,3 @@
-
-console.log("[AI Doom Assassin] content script loaded (Step 4)");
-
-
 function getTweetText(articleEl) {
   const textNodes = [];
   const walker = document.createTreeWalker(
@@ -162,13 +158,8 @@ function injectStyles() {
 function scanExistingTweets() {
   const articles = document.querySelectorAll('article[role="article"]');
   if (articles.length === 0) return false;
-  console.log(`[AI Doom Assassin] Initial scan: ${articles.length} tweets`);
-  articles.forEach((article, i) => {
+  articles.forEach((article) => {
     processArticle(article);
-    if (i < 2) {
-      const text = getTweetText(article);
-      console.log(`--- Tweet ${i + 1} ---`, text.substring(0, 150) + (text.length > 150 ? "..." : ""));
-    }
   });
   return true;
 }
@@ -179,10 +170,8 @@ function waitForTweets(maxAttempts = 10, delayMs = 500) {
     attempts++;
     if (scanExistingTweets()) {
       clearInterval(checkInterval);
-      console.log("[AI Doom Assassin] Initial scan done. Observer is watching for new tweets.");
     } else if (attempts >= maxAttempts) {
       clearInterval(checkInterval);
-      console.log("[AI Doom Assassin] No tweets found yet. Scroll or refresh.");
     }
   }, delayMs);
 }
@@ -204,7 +193,6 @@ function setupMutationObserver() {
   });
 
   observer.observe(document.body, { childList: true, subtree: true });
-  console.log("[AI Doom Assassin] MutationObserver active: new tweets will be processed.");
 }
 
 
