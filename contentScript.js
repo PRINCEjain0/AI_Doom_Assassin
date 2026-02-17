@@ -31,10 +31,25 @@ function mightBeAIRelated(text) {
 }
 
 const processedArticles = new WeakSet();
+let isEnabled = true; // default enabled
+
+// Check enabled state
+chrome.storage.local.get(['enabled'], (data) => {
+  isEnabled = data.enabled !== false; // default to true
+});
+
+// Listen for toggle from popup
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === 'toggle') {
+    isEnabled = msg.enabled;
+  }
+});
 
 function processArticle(articleEl) {
   if (!articleEl || processedArticles.has(articleEl)) return;
   processedArticles.add(articleEl);
+
+  if (!isEnabled) return; // Skip if disabled
 
   const text = getTweetText(articleEl);
   if (!text || text.length < 10) return;
@@ -78,6 +93,13 @@ function markAsDoom(articleEl, reason) {
 
   articleEl.style.position = articleEl.style.position || "relative";
   articleEl.appendChild(overlay);
+
+  // Update hidden count
+  chrome.storage.local.get(['hiddenCount'], (data) => {
+    const count = (data.hiddenCount || 0) + 1;
+    chrome.storage.local.set({ hiddenCount: count });
+    chrome.runtime.sendMessage({ type: 'hiddenCountUpdate', count });
+  });
 }
 
 function injectStyles() {
