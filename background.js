@@ -29,60 +29,150 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+function tryParseJsonArray(text) {
+  // Groq is usually clean, but this makes us resilient to extra text.
+  const trimmed = (text || '').trim();
+  if (!trimmed) return null;
+  const start = trimmed.indexOf('[');
+  const end = trimmed.lastIndexOf(']');
+  if (start === -1 || end === -1 || end <= start) return null;
+  try {
+    return JSON.parse(trimmed.slice(start, end + 1));
+  } catch (_) {
+    return null;
+  }
+}
+
+async function callGroqChat({ apiKey, messages, maxTokens }) {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages,
+      max_tokens: maxTokens,
+      temperature: 0.1,
+    }),
+  });
+  const bodyText = await res.text();
+  return { res, bodyText };
+}
+
+async function rateLimitedGate(sendResponse) {
+  const now = Date.now();
+  if (now < rateLimitUntil) {
+    sendResponse({ error: 'rate_limited', retryAfterMs: rateLimitUntil - now });
+    return false;
+  }
+  const wait = Math.max(0, lastRequestTime + MIN_DELAY_MS - now);
+  if (wait > 0) await sleep(wait);
+  lastRequestTime = Date.now();
+  return true;
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.type !== 'classify' || typeof msg.text !== 'string') {
-    sendResponse({ isFearMongering: false, reason: '' });
+  const isSingle = msg.type === 'classify' && typeof msg.text === 'string';
+  const isBatch = msg.type === 'classify_batch' && Array.isArray(msg.items);
+  if (!isSingle && !isBatch) {
+    sendResponse({ error: 'bad_request' });
     return true;
   }
 
   (async () => {
     const { groqApiKey } = await chrome.storage.local.get(['groqApiKey']);
     if (!groqApiKey || !groqApiKey.trim()) {
-      sendResponse({ isFearMongering: false, reason: '', error: 'no_api_key' });
+      sendResponse({ error: 'no_api_key' });
       return;
     }
 
-    const now = Date.now();
-    if (now < rateLimitUntil) {
-      sendResponse({ isFearMongering: false, reason: '', error: 'rate_limited', retryAfterMs: rateLimitUntil - now });
-      return;
-    }
-
-    const wait = Math.max(0, lastRequestTime + MIN_DELAY_MS - now);
-    if (wait > 0) await sleep(wait);
-
-    lastRequestTime = Date.now();
-    const text = msg.text.slice(0, 2000);
     const apiKey = groqApiKey.trim();
 
     try {
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: GROQ_MODEL,
+      const okToCall = await rateLimitedGate(sendResponse);
+      if (!okToCall) return;
+
+      // --- Single tweet classification (backwards compatible) ---
+      if (isSingle) {
+        const text = msg.text.slice(0, 2000);
+        const { res, bodyText } = await callGroqChat({
+          apiKey,
           messages: [
             { role: 'system', content: CLASSIFY_SYSTEM },
             { role: 'user', content: `Tweet to classify:\n\n${text}` },
           ],
-          max_tokens: 80,
-          temperature: 0.1,
-        }),
-      });
+          maxTokens: 80,
+        });
 
-      const bodyText = await res.text();
+        if (res.status === 429) {
+          rateLimitUntil = Date.now() + RATE_LIMIT_COOLDOWN_MS;
+          sendResponse({ error: 'rate_limited', retryAfterMs: RATE_LIMIT_COOLDOWN_MS });
+          return;
+        }
+
+        if (!res.ok) {
+          sendResponse({ error: 'api_error', details: bodyText });
+          return;
+        }
+
+        let data;
+        try {
+          data = JSON.parse(bodyText);
+        } catch (_) {
+          sendResponse({ error: 'api_error', details: bodyText });
+          return;
+        }
+
+        const content = data.choices?.[0]?.message?.content?.trim() || '';
+        let isFearMongering = false;
+        let reason = '';
+        try {
+          const parsed = JSON.parse(content);
+          isFearMongering = !!parsed.isFearMongering;
+          reason = typeof parsed.reason === 'string' ? parsed.reason : '';
+        } catch (_) {}
+        sendResponse({ isFearMongering, reason });
+        return;
+      }
+
+      // --- Batch classification ---
+      const items = msg.items
+        .filter((it) => it && typeof it.key === 'string' && typeof it.text === 'string')
+        .slice(0, 10); // hard cap for safety
+
+      if (items.length === 0) {
+        sendResponse({ results: [] });
+        return;
+      }
+
+      const batchPrompt = [
+        `Classify each tweet item below. Return ONLY a JSON array.`,
+        `Each array element must be: {"key":"<same key>","isFearMongering":true/false,"reason":"..."}.`,
+        `If not fear-mongering, reason MUST be "".`,
+        ``,
+        `Items:`,
+        ...items.map((it) => `- key: ${it.key}\n  text: ${it.text.replace(/\s+/g, ' ').slice(0, 800)}`),
+      ].join('\n');
+
+      const { res, bodyText } = await callGroqChat({
+        apiKey,
+        messages: [
+          { role: 'system', content: CLASSIFY_SYSTEM },
+          { role: 'user', content: batchPrompt },
+        ],
+        maxTokens: 500,
+      });
 
       if (res.status === 429) {
         rateLimitUntil = Date.now() + RATE_LIMIT_COOLDOWN_MS;
-        sendResponse({ isFearMongering: false, reason: '', error: 'rate_limited', retryAfterMs: RATE_LIMIT_COOLDOWN_MS });
+        sendResponse({ error: 'rate_limited', retryAfterMs: RATE_LIMIT_COOLDOWN_MS });
         return;
       }
 
       if (!res.ok) {
-        sendResponse({ isFearMongering: false, reason: '', error: 'api_error', details: bodyText });
+        sendResponse({ error: 'api_error', details: bodyText });
         return;
       }
 
@@ -90,21 +180,28 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       try {
         data = JSON.parse(bodyText);
       } catch (_) {
-        sendResponse({ isFearMongering: false, reason: '', error: 'api_error', details: bodyText });
+        sendResponse({ error: 'api_error', details: bodyText });
         return;
       }
 
       const content = data.choices?.[0]?.message?.content?.trim() || '';
-      let isFearMongering = false;
-      let reason = '';
-      try {
-        const parsed = JSON.parse(content);
-        isFearMongering = !!parsed.isFearMongering;
-        reason = typeof parsed.reason === 'string' ? parsed.reason : '';
-      } catch (_) {}
-      sendResponse({ isFearMongering, reason });
+      const arr = tryParseJsonArray(content);
+      if (!arr) {
+        sendResponse({ error: 'api_error', details: content });
+        return;
+      }
+
+      const results = arr
+        .filter((r) => r && typeof r.key === 'string')
+        .map((r) => ({
+          key: r.key,
+          isFearMongering: !!r.isFearMongering,
+          reason: typeof r.reason === 'string' ? r.reason : '',
+        }));
+
+      sendResponse({ results });
     } catch (e) {
-      sendResponse({ isFearMongering: false, reason: '', error: 'network', details: String(e.message) });
+      sendResponse({ error: 'network', details: String(e.message) });
     }
   })();
 
