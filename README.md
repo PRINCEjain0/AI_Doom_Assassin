@@ -1,125 +1,87 @@
-# 🎯 AI Doom Assassin
+# AI Doom Assassin
 
-**Automatically filter out AI fear-mongering posts on X/Twitter** – because your feed doesn't need that energy.
+Browser extension that automatically filters out AI fear-mongering posts on X/Twitter. Blurs doom posts with funny messages. Your feed will thank you.
 
-Blurs doom posts with hilarious viral messages. Each hidden post gets a random funny overlay. Your mental health will thank you.
+## What It Does
 
-## ✨ Features
+When someone posts "AI will take your job" or similar doom-posting, the extension blurs it and shows a random funny message like:
 
-- 🤖 **AI-Powered Detection** – Uses Groq's free LLM to identify serious AI fear-mongering
-- 😂 **Viral Overlay Messages** – 10 random funny messages when posts are hidden
-- 🎭 **Smart Filtering** – Distinguishes humour/satire from genuine doom-posting
-- 🚀 **Auto-Runs** – Starts automatically when you visit X, no clicks needed
-- 💚 **100% Free** – Uses Groq free tier (no credit card required)
-- ⚡ **Rate Limited** – Stays under free tier limits, auto-resumes after cooldown
-- 🎛️ **Popup Control** – Toggle on/off, see stats, manage API key
+- "Bro really posted 'AI will take your job' unironically. Touch grass. Click to see it."
+- "Another 'learn to code' doomer? My guy, go outside. Click if you're still scrolling."
+- "This post is giving 'I doom-scroll for 6 hours a day' energy. Click to join them."
 
-## 🎬 Demo
+And 12 more variations. Each hidden post gets a random one.
 
-When a doom post is detected, it gets blurred with a random message like:
+## Installation
 
-- 🚨 *"AI doom detected. Your feed is now 100% less panicky. Click to see the chaos anyway."*
-- *"Another 'AI will take your job' post? We don't do that here. Click if you're brave."*
-- *"This post tried to scare you about AI. We said no. Click to reveal anyway."*
+### 1. Get a Groq API Key
 
-And 7 more variations!
+Go to [console.groq.com](https://console.groq.com), sign up (free, no credit card), create an API key, copy it.
 
-## 🚀 Installation
+### 2. Install the Extension
 
-### Step 1: Get a Groq API Key (Free)
+1. Download/clone this repo
+2. Open `chrome://extensions/` (or `edge://extensions/` / `brave://extensions/`)
+3. Turn on Developer mode (top right)
+4. Click "Load unpacked"
+5. Select this folder
 
-1. Go to **[console.groq.com](https://console.groq.com)**
-2. Sign up (free, no credit card)
-3. Navigate to **API Keys** → **Create API Key**
-4. Copy your key (starts with `gsk_...`)
+### 3. Add Your API Key
 
-### Step 2: Install Extension
+Click the extension icon → Settings, paste your Groq API key, save.
 
-1. **Download/Clone** this repo
-2. Open your browser:
-   - Chrome: `chrome://extensions/`
-   - Edge: `edge://extensions/`
-   - Brave: `brave://extensions/`
-3. **Enable Developer mode** (toggle in top right)
-4. Click **"Load unpacked"**
-5. Select the `AI_Doom_Assassin` folder
+### 4. Use It
 
-### Step 3: Configure
+Go to x.com and scroll. It runs automatically. Doom posts get blurred. Click the overlay if you want to see them anyway.
 
-1. Click the extension icon → **Settings** (or right-click → Options)
-2. Paste your **Groq API key**
-3. Click **Save**
+## How It Works
 
-### Step 4: Use It
+1. Scrapes tweets as you scroll
+2. Only sends AI-related tweets to the LLM (saves API calls)
+3. Groq LLM checks if it's serious fear-mongering or just humour
+4. Blurs serious doom posts with a random message
+5. Rate limits to stay under Groq free tier (30 req/min)
 
-1. Visit **[x.com](https://x.com)** or **[twitter.com](https://twitter.com)**
-2. Scroll your feed – doom posts will be automatically blurred
-3. Click the blurred overlay to reveal if you want to see it anyway
+## Controls
 
-## 🎛️ Controls
+Click the extension icon to see:
+- Toggle to enable/disable
+- Status indicator
+- Count of posts hidden
+- Settings button
 
-**Popup Menu** (click extension icon):
-- **Toggle** – Enable/disable filtering
-- **Status** – Shows if extension is active
-- **Stats** – Count of posts hidden
-- **Settings** – Manage API key
+## Notes
 
-## 🔧 How It Works
+- Uses Groq free tier (30 requests/min). Extension throttles to ~27/min automatically.
+- If you hit the limit, it pauses for 1 minute then resumes.
+- API key is stored only in your browser, never sent anywhere except Groq.
+- No backend server needed, everything runs client-side.
 
-1. **Scrapes tweets** from your X feed as you scroll
-2. **Pre-filters** – Only sends AI-related tweets to the LLM (saves API calls)
-3. **Classifies** – Groq LLM determines if it's serious fear-mongering or just humour
-4. **Blurs** – Serious doom posts get blurred with a random viral message
-5. **Rate limits** – Stays under Groq free tier (30 req/min)
+## Troubleshooting
 
-## 💡 Tips
-
-- **Free Tier Limits**: Groq free tier = 30 requests/min. Extension throttles to ~27/min automatically.
-- **If you hit limits**: Extension pauses for 1 minute, then resumes automatically.
-- **Toggle off**: Use the popup toggle if you want to see everything unfiltered temporarily.
-- **Reveal posts**: Click any blurred overlay to see the original post.
-
-## 🛠️ Tech Stack
-
-- **Manifest V3** – Modern Chrome extension format
-- **Groq API** – Free LLM (llama-3.1-8b-instant)
-- **Content Scripts** – Runs on X/Twitter pages
-- **Background Service Worker** – Handles API calls
-- **Chrome Storage** – Stores API key and settings locally
-
-## 📝 Privacy
-
-- **100% Local** – API key stored only in your browser
-- **No Tracking** – Extension doesn't collect or send any data except tweet text to Groq for classification
-- **No Server** – Everything runs client-side, no backend needed
-
-## 🐛 Troubleshooting
-
-**Extension not working?**
+**Not working?**
 - Check if API key is set (popup → Settings)
-- Reload extension (Extensions page → Reload)
-- Refresh X/Twitter page
+- Reload the extension
+- Refresh x.com
 
 **Posts not being hidden?**
-- Make sure extension is enabled (popup toggle should be ON)
+- Make sure toggle is ON in popup
 - Check console (F12) for errors
 - Verify API key is valid
 
 **Rate limit errors?**
-- Normal on free tier – extension auto-pauses and resumes
-- Wait 1 minute, then it continues automatically
+- Normal on free tier. Extension auto-pauses for 1 min then continues.
 
-## 📄 License
+## Tech Stuff
 
-Free to use, modify, and share. Go viral with it! 🚀
+- Manifest V3 extension
+- Groq API (llama-3.1-8b-instant)
+- Content scripts for X/Twitter
+- Background service worker for API calls
+- Chrome storage for settings
 
-## 🙏 Credits
-
-Built with:
-- [Groq](https://groq.com) – Free LLM API
-- Chrome Extension APIs
-- Lots of coffee ☕
+Built with Groq's free API and Chrome extension APIs.
 
 ---
 
-**Made to make your X feed less doom-y**
+Made to make your X feed less doom-y, one blur at a time.
