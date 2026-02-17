@@ -1,5 +1,5 @@
 
-console.log("[AI Doom Assassin] content script loaded (Step 3)");
+console.log("[AI Doom Assassin] content script loaded (Step 4)");
 
 
 function getTweetText(articleEl) {
@@ -25,6 +25,11 @@ function getTweetText(articleEl) {
   return textNodes.join(" ");
 }
 
+function mightBeAIRelated(text) {
+  const lower = text.toLowerCase();
+  return /\b(ai|llm|gpt|chatgpt|artificial intelligence|machine learning|ml)\b/.test(lower);
+}
+
 const processedArticles = new WeakSet();
 
 function processArticle(articleEl) {
@@ -33,8 +38,63 @@ function processArticle(articleEl) {
 
   const text = getTweetText(articleEl);
   if (!text || text.length < 10) return;
+  if (!mightBeAIRelated(text)) return;
 
-  console.log("[AI Doom Assassin] Tweet text:", text.substring(0, 120) + (text.length > 120 ? "..." : ""));
+  chrome.runtime.sendMessage({ type: "classify", text }, (response) => {
+    if (chrome.runtime.lastError) {
+      console.warn("[AI Doom Assassin]", chrome.runtime.lastError.message);
+      return;
+    }
+    if (response?.error === "rate_limited") {
+      if (!window._aiDoomRateLimitLogged) {
+        window._aiDoomRateLimitLogged = true;
+        console.warn("[AI Doom Assassin] Quota exceeded. Pausing for ~1 min. Then only a few tweets/min will be checked.");
+        setTimeout(() => { window._aiDoomRateLimitLogged = false; }, 60000);
+      }
+      return;
+    }
+    if (response?.error) {
+      console.warn("[AI Doom Assassin]", response.error, response.details || "");
+      return;
+    }
+    if (response?.isFearMongering) {
+      markAsDoom(articleEl, response.reason || "AI fear-mongering");
+    }
+  });
+}
+
+function markAsDoom(articleEl, reason) {
+  articleEl.classList.add("ai-doom-assassin-hidden");
+  if (articleEl.querySelector(".ai-doom-assassin-overlay")) return;
+
+  const overlay = document.createElement("div");
+  overlay.className = "ai-doom-assassin-overlay";
+  overlay.textContent = "Hidden: " + (reason || "AI fear-mongering") + ". Click to reveal.";
+
+  overlay.addEventListener("click", () => {
+    articleEl.classList.remove("ai-doom-assassin-hidden");
+    overlay.remove();
+  });
+
+  articleEl.style.position = articleEl.style.position || "relative";
+  articleEl.appendChild(overlay);
+}
+
+function injectStyles() {
+  if (document.getElementById("ai-doom-assassin-styles")) return;
+  const style = document.createElement("style");
+  style.id = "ai-doom-assassin-styles";
+  style.textContent = `
+    article.ai-doom-assassin-hidden { filter: blur(10px); pointer-events: none; }
+    article.ai-doom-assassin-hidden .ai-doom-assassin-overlay { pointer-events: auto; }
+    .ai-doom-assassin-overlay {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      text-align: center; padding: 12px; background: rgba(15,23,42,0.9); color: #e5e7eb;
+      font-size: 14px; font-weight: 500; cursor: pointer; z-index: 9999; border-radius: 12px;
+    }
+    .ai-doom-assassin-overlay:hover { background: rgba(30,64,175,0.9); color: #f9fafb; }
+  `;
+  document.documentElement.appendChild(style);
 }
 
 
@@ -87,5 +147,6 @@ function setupMutationObserver() {
 }
 
 
+injectStyles();
 waitForTweets();
 setupMutationObserver();

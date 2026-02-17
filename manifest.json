@@ -1,20 +1,27 @@
 {
-    "manifest_version": 3,
-    "name": "AI Doom Assassin",
-    "description": "Experiment: detect and label AI fear-mongering posts on X.",
-    "version": "0.0.1",
-    "permissions": [],
-    "host_permissions": [
-      "https://x.com/*"
-    ],
-    "content_scripts": [
-      {
-        "matches": ["https://x.com/*"],
-        "js": ["contentScript.js"],
-        "run_at": "document_idle"
-      }
-    ],
-    "action": {
-      "default_title": "AI Doom Assassin"
+  "manifest_version": 3,
+  "name": "AI Doom Assassin",
+  "description": "Detect and blur AI fear-mongering posts on X using an LLM.",
+  "version": "0.0.2",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://x.com/*",
+    "https://api.groq.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_ui": {
+    "page": "options.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://x.com/*"],
+      "js": ["contentScript.js"],
+      "run_at": "document_idle"
     }
+  ],
+  "action": {
+    "default_title": "AI Doom Assassin"
   }
+}
