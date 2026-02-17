@@ -77,16 +77,21 @@ function processArticle(articleEl) {
 }
 
 const VIRAL_MESSAGES = [
-  "🚨 AI doom detected. Your feed is now 100% less panicky. Click to see the chaos anyway.",
-  "Another 'AI will take your job' post? We don't do that here. Click if you're brave.",
-  "This post tried to scare you about AI. We said no. Click to reveal anyway.",
-  "AI fear-mongering blocked. Your mental health thanks you. Click to un-peace.",
-  "This post was too doom-y. We spared you. Click to un-spare.",
-  "Fear-mongering detected. Peace restored. Click to see what you're missing.",
-  "AI doom post blocked. Your serotonin is safe. Click to risk it.",
-  "This post violated the 'no fear-mongering' rule. Click to see why.",
-  "AI panic post filtered. Your feed is now certified chill. Click to un-chill.",
-  "Doom post detected. We took care of it. Click to see what we saved you from."
+  "🌱 Touch grass instead of reading this doom post. Click if you must.",
+  "This post was too doom-y. Maybe go touch grass? Click to see it anyway.",
+  "AI fear-mongering blocked. Time to get off scrolling. Click to un-block.",
+  "Doom post filtered. Your scroll time is better spent elsewhere. Click to reveal.",
+  "This post tried to doom you. Go touch grass instead. Click if you're still here.",
+  "Bro really posted 'AI will take your job' unironically. Touch grass. Click to see it.",
+  "Another 'learn to code' doomer? My guy, go outside. Click if you're still scrolling.",
+  "This post is giving 'I doom-scroll for 6 hours a day' energy. Click to join them.",
+  "AI doom post detected. Your screen time is already too high. Click to make it worse.",
+  "Someone's really out here fear-mongering about AI. Go touch grass, king. Click to see.",
+  "This post violated the 'no doom-scrolling' rule. You're welcome. Click to doom-scroll anyway.",
+  "AI panic post blocked. Your therapist would be proud. Click to disappoint them.",
+  "Doom post filtered. You're on X at 2am reading this. Go to bed. Click to keep scrolling.",
+  "This post tried to make you panic about AI. We said no. Touch grass. Click if you must.",
+  "Another 'AI will replace devs' post? My brother in Christ, go outside. Click to see it."
 ];
 
 function getRandomMessage() {
