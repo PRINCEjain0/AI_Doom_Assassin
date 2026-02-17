@@ -31,14 +31,12 @@ function mightBeAIRelated(text) {
 }
 
 const processedArticles = new WeakSet();
-let isEnabled = true; // default enabled
+let isEnabled = true; 
 
-// Check enabled state
 chrome.storage.local.get(['enabled'], (data) => {
-  isEnabled = data.enabled !== false; // default to true
+  isEnabled = data.enabled !== false; 
 });
 
-// Listen for toggle from popup
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === 'toggle') {
     isEnabled = msg.enabled;
@@ -49,7 +47,7 @@ function processArticle(articleEl) {
   if (!articleEl || processedArticles.has(articleEl)) return;
   processedArticles.add(articleEl);
 
-  if (!isEnabled) return; // Skip if disabled
+  if (!isEnabled) return; 
 
   const text = getTweetText(articleEl);
   if (!text || text.length < 10) return;
@@ -78,13 +76,30 @@ function processArticle(articleEl) {
   });
 }
 
+const VIRAL_MESSAGES = [
+  "🚨 AI doom detected. Your feed is now 100% less panicky. Click to see the chaos anyway.",
+  "Another 'AI will take your job' post? We don't do that here. Click if you're brave.",
+  "This post tried to scare you about AI. We said no. Click to reveal anyway.",
+  "AI fear-mongering blocked. Your mental health thanks you. Click to un-peace.",
+  "This post was too doom-y. We spared you. Click to un-spare.",
+  "Fear-mongering detected. Peace restored. Click to see what you're missing.",
+  "AI doom post blocked. Your serotonin is safe. Click to risk it.",
+  "This post violated the 'no fear-mongering' rule. Click to see why.",
+  "AI panic post filtered. Your feed is now certified chill. Click to un-chill.",
+  "Doom post detected. We took care of it. Click to see what we saved you from."
+];
+
+function getRandomMessage() {
+  return VIRAL_MESSAGES[Math.floor(Math.random() * VIRAL_MESSAGES.length)];
+}
+
 function markAsDoom(articleEl, reason) {
   articleEl.classList.add("ai-doom-assassin-hidden");
   if (articleEl.querySelector(".ai-doom-assassin-overlay")) return;
 
   const overlay = document.createElement("div");
   overlay.className = "ai-doom-assassin-overlay";
-  overlay.textContent = "Hidden: " + (reason || "AI fear-mongering") + ". Click to reveal.";
+  overlay.innerHTML = `<div style="max-width: 280px;">${getRandomMessage()}</div>`;
 
   overlay.addEventListener("click", () => {
     articleEl.classList.remove("ai-doom-assassin-hidden");
@@ -94,7 +109,6 @@ function markAsDoom(articleEl, reason) {
   articleEl.style.position = articleEl.style.position || "relative";
   articleEl.appendChild(overlay);
 
-  // Update hidden count
   chrome.storage.local.get(['hiddenCount'], (data) => {
     const count = (data.hiddenCount || 0) + 1;
     chrome.storage.local.set({ hiddenCount: count });
@@ -107,14 +121,34 @@ function injectStyles() {
   const style = document.createElement("style");
   style.id = "ai-doom-assassin-styles";
   style.textContent = `
-    article.ai-doom-assassin-hidden { filter: blur(10px); pointer-events: none; }
-    article.ai-doom-assassin-hidden .ai-doom-assassin-overlay { pointer-events: auto; }
-    .ai-doom-assassin-overlay {
-      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-      text-align: center; padding: 12px; background: rgba(15,23,42,0.9); color: #e5e7eb;
-      font-size: 14px; font-weight: 500; cursor: pointer; z-index: 9999; border-radius: 12px;
+    article.ai-doom-assassin-hidden { 
+      position: relative; 
+      pointer-events: none; 
     }
-    .ai-doom-assassin-overlay:hover { background: rgba(30,64,175,0.9); color: #f9fafb; }
+    article.ai-doom-assassin-hidden > *:not(.ai-doom-assassin-overlay) {
+      filter: blur(10px);
+    }
+    article.ai-doom-assassin-hidden .ai-doom-assassin-overlay { 
+      pointer-events: auto; 
+      filter: blur(0) !important;
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 16px;
+      background: rgba(15,23,42,0.95);
+      color: #e5e7eb;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      z-index: 9999;
+      border-radius: 12px;
+      line-height: 1.5;
+    }
+    .ai-doom-assassin-overlay:hover { background: rgba(30,64,175,0.95); color: #f9fafb; }
+    .ai-doom-assassin-overlay div { margin: 0 auto; }
   `;
   document.documentElement.appendChild(style);
 }

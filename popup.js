@@ -7,10 +7,9 @@ const apiStatus = document.getElementById('apiStatus');
 const optionsBtn = document.getElementById('optionsBtn');
 const hiddenCountEl = document.getElementById('hiddenCount');
 
-// Load saved state
 function loadState() {
   chrome.storage.local.get(['enabled', 'groqApiKey', 'hiddenCount'], (data) => {
-    const isEnabled = data.enabled !== false; // default to true
+    const isEnabled = data.enabled !== false; 
     updateToggle(isEnabled);
     updateApiStatus(data.groqApiKey);
     updateHiddenCount(data.hiddenCount || 0);
